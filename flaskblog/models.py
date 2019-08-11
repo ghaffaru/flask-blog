@@ -1,5 +1,7 @@
 from flask import Flask,render_template,url_for,flash,redirect
 from datetime import datetime
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from flask import current_app
 from flaskblog import db,login_manager
 from flask_login import UserMixin
 
@@ -17,7 +19,19 @@ class User(db.Model,UserMixin):
 
     def __repr__(self):
         return "User " + self.username + " email: " + self.email + " image: " + self.image_file
+    
+    def get_reset_token(self, expires_sec=1800):
+        s = Serializer(current_app.config['SECRET_KEY'], expires_sec)
+        return s.dumps({'user_id':self.id}).decode('utf-8')
 
+    @staticmethod
+    def verify_reset_token(token):
+        s =Serializer(current_app.config['SECRET_KEY'])
+        try:
+            user_id = s.loads(token)['user_id']
+        except:
+            return None
+        return User.query.get(user_id)
 
 class Post(db.Model):
     id = db.Column(db.Integer,primary_key=True)
@@ -29,3 +43,5 @@ class Post(db.Model):
     def __repr__(self):
         return "Post " + self.title + " date posted: " + str(self.date_posted)
 
+
+        
